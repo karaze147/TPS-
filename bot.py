@@ -323,6 +323,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Commande /admin — ouvre le panel uniquement pour l'admin."""
+    user = update.effective_user
+    if not ADMIN_CHAT_ID or str(user.id) != str(ADMIN_CHAT_ID).strip():
+        await update.message.reply_text('⛔ Accès refusé.')
+        return
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton('🔐 Panel Admin', web_app=WebAppInfo(url=WEBAPP_URL + '/admin'))
+    ]])
+    await update.message.reply_text(
+        '👋 Bienvenue dans le panel admin !',
+        reply_markup=keyboard
+    )
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Commande /stats — statistiques rapides pour l'admin."""
+    user = update.effective_user
+    if not ADMIN_CHAT_ID or str(user.id) != str(ADMIN_CHAT_ID).strip():
+        await update.message.reply_text('⛔ Accès refusé.')
+        return
+
+    data = load_data()
+    nb_users    = len(data.get('users', []))
+    nb_products = len(data.get('products', []))
+    nb_cats     = len(data.get('categories', []))
+    shop_name   = data.get('settings', {}).get('shopName', 'TPS67')
+
+    await update.message.reply_text(
+        f'📊 *Stats {shop_name}*\n\n'
+        f'👥 Utilisateurs : *{nb_users}*\n'
+        f'📦 Produits : *{nb_products}*\n'
+        f'🗂️ Catégories : *{nb_cats}*',
+        parse_mode='Markdown'
+    )
+
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f'Bot error: {context.error}', exc_info=context.error)
 
@@ -378,6 +414,8 @@ def init_bot():
 
     tg_app = Application.builder().token(BOT_TOKEN).build()
     tg_app.add_handler(CommandHandler('start', start))
+    tg_app.add_handler(CommandHandler('admin', admin_command))
+    tg_app.add_handler(CommandHandler('stats', stats_command))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     tg_app.add_error_handler(error_handler)
 
