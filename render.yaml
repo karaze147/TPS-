@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tps67
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn bot:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    envVars:
+      - key: BOT_TOKEN
+        sync: false          # à remplir manuellement dans Render
+      - key: WEBAPP_URL
+        sync: false          # ex: https://tps67.onrender.com
+      - key: WEBHOOK_URL
+        sync: false          # même URL que WEBAPP_URL
+      - key: ADMIN_CHAT_ID
+        sync: false          # ton Telegram ID
