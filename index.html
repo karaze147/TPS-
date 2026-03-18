@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TPS67</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d1a;--bg2:#13132b;--bg3:#1a1a35;--purple:#7c3aed;--purple2:#a855f7;--purple3:#c084fc;--pink:#ec4899;--cyan:#06b6d4;--yellow:#fbbf24;--text:#f1f0ff;--text2:#9d9bcc;--card:#16163a;--border:rgba(124,58,237,0.25);--radius:16px;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(100,60,200,0.18) 0%,transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(124,58,237,0.12) 0%,transparent 50%);pointer-events:none;z-index:0;}
+#starCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+.app{position:relative;z-index:1;padding-bottom:80px;}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loader-logo{font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;background:linear-gradient(90deg,var(--purple2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.loader-bar{width:180px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.loader-fill{height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:2px;animation:loadfill 1.2s ease forwards;}
+@keyframes loadfill{to{width:100%;}}
+.loader-text{font-size:13px;color:var(--text2);}
+
+/* HEADER */
+.header{padding:14px 16px 10px;background:linear-gradient(180deg,rgba(13,13,26,0.98) 0%,rgba(13,13,26,0.9) 100%);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);}
+.shop-info{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.shop-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:white;flex-shrink:0;box-shadow:0 0 20px rgba(124,58,237,0.5);overflow:hidden;}
+.shop-avatar img{width:100%;height:100%;object-fit:cover;}
+.shop-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;background:linear-gradient(90deg,var(--purple2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.shop-sub{font-size:12px;color:var(--text2);margin-top:1px;}
+.shop-dot{margin-left:auto;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fbbf24);box-shadow:0 0 16px rgba(249,115,22,0.5);flex-shrink:0;}
+.search-wrap{position:relative;margin-bottom:8px;}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text2);}
+.search-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:11px 16px 11px 42px;color:var(--text);font-size:14px;font-family:'Nunito',sans-serif;outline:none;}
+.search-input:focus{border-color:var(--purple);}
+.search-input::placeholder{color:var(--text2);}
+.filters-row{display:flex;gap:8px;}
+.filter-btn{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:9px 14px;color:var(--text);font-size:13px;font-family:'Nunito',sans-serif;font-weight:600;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+
+/* CATS */
+.cats-scroll{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;}
+.cats-scroll::-webkit-scrollbar{display:none;}
+.cat-chip{flex-shrink:0;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.cat-chip.active{background:linear-gradient(135deg,var(--purple),var(--purple2));border-color:var(--purple);color:white;box-shadow:0 4px 15px rgba(124,58,237,0.4);}
+
+/* PRODUCTS GRID */
+.products-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px;}
+.product-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform 0.2s;animation:fadeUp 0.4s ease both;}
+.product-card:active{transform:scale(0.97);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.card-img-wrap{position:relative;aspect-ratio:1/1;background:var(--bg3);overflow:hidden;}
+.card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.card-img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px;background:linear-gradient(135deg,var(--bg2),var(--bg3));}
+.card-badge{position:absolute;top:8px;left:8px;background:rgba(13,13,26,0.8);border:1px solid rgba(124,58,237,0.4);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:var(--text);max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.card-like{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:4px;}
+.like-count{background:var(--pink);border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;color:white;display:flex;align-items:center;gap:3px;}
+.like-btn{width:28px;height:28px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:none;transition:transform 0.2s;}
+.like-btn:active{transform:scale(1.3);}
+.card-body{padding:10px 10px 12px;}
+.card-title{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;margin-bottom:3px;}
+.card-desc{font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.video-badge{position:absolute;bottom:8px;left:8px;background:rgba(124,58,237,0.85);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;color:white;}
+
+/* DETAIL PAGE */
+.page{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;animation:slideUp 0.3s ease;}
+.page.active{display:block;}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.detail-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;position:sticky;top:0;background:rgba(13,13,26,0.95);backdrop-filter:blur(20px);z-index:10;border-bottom:1px solid var(--border);}
+.back-btn{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif;}
+.detail-media{width:100%;aspect-ratio:16/10;background:var(--bg2);overflow:hidden;position:relative;}
+.detail-media img,.detail-media video{width:100%;height:100%;object-fit:cover;}
+.detail-media-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;background:linear-gradient(135deg,var(--bg2),var(--bg3));}
+.detail-body{padding:20px 16px 100px;}
+.detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.detail-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;background:linear-gradient(90deg,var(--purple2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;flex:1;}
+.detail-cat-badge{background:var(--bg3);border:1px solid var(--purple);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--purple3);white-space:nowrap;}
+.detail-variant{font-size:13px;color:var(--purple3);font-weight:700;margin-bottom:12px;}
+.detail-desc{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px;}
+.qty-label{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.qty-options{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+.qty-option{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.qty-option.selected{background:linear-gradient(135deg,var(--purple),var(--purple2));border-color:var(--purple);color:white;box-shadow:0 4px 15px rgba(124,58,237,0.4);}
+.action-btns{display:flex;flex-direction:column;gap:10px;}
+.btn{width:100%;padding:15px;border-radius:14px;border:none;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform 0.15s;}
+.btn:active{transform:scale(0.97);}
+.btn-cart{background:linear-gradient(135deg,var(--purple),var(--purple2));color:white;box-shadow:0 6px 25px rgba(124,58,237,0.45);}
+.btn-telegram{background:linear-gradient(135deg,#0088cc,#06b6d4);color:white;}
+
+/* CART */
+.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px;color:var(--text2);font-size:15px;}
+.cart-empty-icon{font-size:60px;}
+.cart-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:0 12px 10px;display:flex;gap:12px;align-items:center;}
+.cart-item-img{width:56px;height:56px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;}
+.cart-item-img img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+.cart-item-info{flex:1;}
+.cart-item-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;margin-bottom:3px;}
+.cart-item-qty{font-size:12px;color:var(--text2);}
+.cart-item-price{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--purple3);}
+.cart-remove{background:none;border:none;color:var(--pink);font-size:18px;cursor:pointer;padding:4px;}
+.cart-total{margin:0 12px 16px;background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(168,85,247,0.1));border:1px solid var(--purple);border-radius:var(--radius);padding:16px;display:flex;justify-content:space-between;align-items:center;}
+.cart-total-label{font-size:14px;color:var(--text2);font-weight:600;}
+.cart-total-price{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;color:var(--purple3);}
+
+/* HISTORY */
+.history-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:0 12px 10px;}
+.history-date{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.history-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;}
+.history-status{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;}
+.status-sent{background:rgba(6,182,212,0.2);color:var(--cyan);}
+
+/* INFO PAGE */
+.info-section{padding:16px;}
+.info-banner{background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(168,85,247,0.1));border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.info-shop-name{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;background:linear-gradient(90deg,var(--purple2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+.info-slogan{font-size:13px;color:var(--purple3);font-weight:600;margin-bottom:12px;}
+.info-desc{font-size:14px;color:var(--text2);line-height:1.7;}
+.info-hours{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--text);font-weight:600;}
+.info-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.info-card-title{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;margin-bottom:14px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;}
+.social-btns{display:flex;flex-direction:column;gap:10px;}
+.social-btn{width:100%;padding:14px 18px;border-radius:14px;border:none;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;transition:transform 0.15s;}
+.social-btn:active{transform:scale(0.97);}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,26,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:150;padding-bottom:env(safe-area-inset-bottom);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 8px;gap:4px;cursor:pointer;color:var(--text2);font-size:10px;font-weight:700;letter-spacing:0.5px;transition:color 0.2s;border:none;background:none;font-family:'Nunito',sans-serif;}
+.nav-item.active{color:var(--purple2);}
+.nav-icon{font-size:20px;}
+.nav-item-wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+.nav-badge{position:absolute;top:-4px;right:-8px;background:var(--pink);color:white;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:linear-gradient(135deg,var(--purple),var(--purple2));color:white;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:700;opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;box-shadow:0 8px 30px rgba(124,58,237,0.5);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* MUSIC BTN */
+#musicBtn{position:fixed;bottom:100px;right:16px;width:50px;height:50px;border-radius:50%;background:var(--purple);box-shadow:0 4px 20px rgba(124,58,237,0.6);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;z-index:200;animation:musicPulse 2s ease-in-out infinite;border:none;}
+@keyframes musicPulse{0%,100%{box-shadow:0 4px 20px rgba(124,58,237,0.6);}50%{box-shadow:0 4px 35px rgba(124,58,237,0.95),0 0 60px rgba(168,85,247,0.3);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.music-playing{animation:musicPulse 2s ease-in-out infinite,spin 4s linear infinite !important;}
+</style>
+</head>
+<body>
+
+<canvas id="starCanvas"></canvas>
+<div id="loader">
+  <div class="loader-logo">TPS67</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">Chargement de la boutique...</div>
+</div>
+
+<button id="musicBtn" onclick="toggleMusic()">🎵</button>
+
+<div class="app" id="mainPage">
+  <div class="header">
+    <div class="shop-info">
+      <div class="shop-avatar" id="shopAvatar">T67</div>
+      <div>
+        <div class="shop-name" id="shopNameEl">TPS67</div>
+        <div class="shop-sub" id="shopSubEl">Boutique officielle</div>
+      </div>
+      <div class="shop-dot"></div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="text" placeholder="Rechercher un produit..." id="searchInput" oninput="filterProducts()">
+    </div>
+    <div class="filters-row">
+      <button class="filter-btn" onclick="scrollToCats()"><span>Toutes les catégories</span><span>▾</span></button>
+      <button class="filter-btn"><span>Tous les produits</span><span>▾</span></button>
+    </div>
+  </div>
+  <div class="cats-scroll" id="catsScroll"></div>
+  <div class="products-grid" id="productsGrid"></div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div class="page" id="detailPage">
+  <div class="detail-header">
+    <div class="shop-info" style="flex:1;margin-bottom:0;">
+      <div class="shop-avatar" style="width:38px;height:38px;font-size:14px;" id="detailAvatar">T67</div>
+      <div>
+        <div class="shop-name" style="font-size:16px;" id="detailShopName">TPS67</div>
+        <div class="shop-sub" id="detailCount">— produits</div>
+      </div>
+    </div>
+    <button class="back-btn" onclick="closePage('detailPage')">← Retour</button>
+  </div>
+  <div class="detail-media" id="detailMedia"></div>
+  <div class="detail-body">
+    <div class="detail-top">
+      <div class="detail-title" id="detailTitle"></div>
+      <div class="detail-cat-badge" id="detailCat"></div>
+    </div>
+    <div class="detail-variant" id="detailVariant"></div>
+    <div class="detail-desc" id="detailDesc"></div>
+    <div class="qty-label">QUANTITÉ</div>
+    <div class="qty-options" id="qtyOptions"></div>
+    <div class="action-btns">
+      <button class="btn btn-cart" onclick="addToCart()">🛒 Ajouter au panier</button>
+      <button class="btn btn-telegram" id="tgOrderBtn" onclick="orderTelegram()">✈️ Commander sur Telegram</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART PAGE -->
+<div class="page" id="cartPage">
+  <div class="detail-header">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;">🛒 Panier</div>
+    <button class="back-btn" onclick="closePage('cartPage')">← Retour</button>
+  </div>
+  <div id="cartContent" style="padding-top:16px;"></div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="historyPage">
+  <div class="detail-header">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;">🕐 Historique</div>
+    <button class="back-btn" onclick="closePage('historyPage')">← Retour</button>
+  </div>
+  <div id="historyContent" style="padding-top:16px;"></div>
+</div>
+
+<!-- INFO PAGE -->
+<div class="page" id="infoPage">
+  <div class="detail-header">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;">ℹ️ Infos</div>
+    <button class="back-btn" onclick="closePage('infoPage')">← Retour</button>
+  </div>
+  <div class="info-section" id="infoContent"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-item active" onclick="showTab('main',this)">
+    <div class="nav-item-wrap"><span class="nav-icon">⊞</span></div>
+    <span>Catalogue</span>
+  </button>
+  <button class="nav-item" onclick="showTab('cats',this)">
+    <div class="nav-item-wrap"><span class="nav-icon">◫</span></div>
+    <span>Catégories</span>
+  </button>
+  <button class="nav-item" onclick="showTab('cart',this)">
+    <div class="nav-item-wrap">
+      <span class="nav-icon">🛒</span>
+      <span class="nav-badge" id="cartBadge" style="display:none">0</span>
+    </div>
+    <span>Panier</span>
+  </button>
+  <button class="nav-item" onclick="showTab('history',this)">
+    <div class="nav-item-wrap"><span class="nav-icon">🕐</span></div>
+    <span>Historique</span>
+  </button>
+  <button class="nav-item" onclick="showTab('info',this)">
+    <div class="nav-item-wrap"><span class="nav-icon">ℹ️</span></div>
+    <span>Infos</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================
+// STATE
+// ========================
+let products   = [];
+let categories = [];
+let settings   = {};
+let info       = {};
+let cart         = JSON.parse(localStorage.getItem('tps67_cart')      || '[]');
+let historyList  = JSON.parse(localStorage.getItem('tps67_history')   || '[]');
+let likes        = JSON.parse(localStorage.getItem('tps67_likes')     || '{}');
+let likeCounts   = JSON.parse(localStorage.getItem('tps67_likecounts')|| '{}');
+let selectedProduct = null;
+let selectedQty     = null;
+let activeCategory  = 'all';
+
+const SOCIAL_COLORS = {
+  telegram: {bg:'linear-gradient(135deg,#0088cc,#06b6d4)',color:'white'},
+  snapchat: {bg:'#FFFC00',color:'#000'},
+  instagram:{bg:'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',color:'white'},
+  tiktok:   {bg:'#010101',color:'white'},
+  twitter:  {bg:'linear-gradient(135deg,#1DA1F2,#0d8bd9)',color:'white'},
+  whatsapp: {bg:'linear-gradient(135deg,#25D366,#128C7E)',color:'white'},
+  youtube:  {bg:'linear-gradient(135deg,#FF0000,#cc0000)',color:'white'},
+  discord:  {bg:'linear-gradient(135deg,#5865F2,#4752c4)',color:'white'},
+  website:  {bg:'linear-gradient(135deg,#6366f1,#4f46e5)',color:'white'},
+};
+const SOCIAL_ICONS   = {telegram:'✈️',snapchat:'👻',instagram:'📸',tiktok:'🎵',twitter:'🐦',whatsapp:'💬',youtube:'▶️',discord:'🎮',website:'🌐'};
+const SOCIAL_LABELS  = {telegram:'Telegram',snapchat:'Snapchat',instagram:'Instagram',tiktok:'TikTok',twitter:'Twitter',whatsapp:'WhatsApp',youtube:'YouTube',discord:'Discord',website:'Site Web'};
+
+// ========================
+// LOAD DATA (API first, localStorage fallback)
+// ========================
+async function loadData() {
+  try {
+    // Charger produits + catégories depuis l'API
+    const [prodRes, settRes, infoRes] = await Promise.all([
+      fetch('/api/products'),
+      fetch('/api/settings'),
+      fetch('/api/info'),
+    ]);
+
+    if (prodRes.ok) {
+      const d = await prodRes.json();
+      products   = d.products   || [];
+      categories = d.categories || [];
+    }
+    if (settRes.ok) settings = await settRes.json();
+    if (infoRes.ok) info     = await infoRes.json();
+
+  } catch (e) {
+    // Fallback localStorage si le serveur est inaccessible
+    console.warn('API inaccessible, fallback localStorage', e);
+    products   = JSON.parse(localStorage.getItem('tps67_admin_products') || '[]');
+    categories = JSON.parse(localStorage.getItem('tps67_admin_cats')     || '["Premium","Classic","Limited"]');
+    settings   = JSON.parse(localStorage.getItem('tps67_settings')       || '{}');
+    info       = JSON.parse(localStorage.getItem('tps67_info')           || '{}');
+  }
+
+  // Produits démo si rien
+  if (!products.length) {
+    products = [
+      {id:1,name:'Papaya Bomb',category:'Premium',desc:'🍑 Papaya Bomb — arômes fruités intenses, qualité élite.',emoji:'🍑',price:[{qty:'1x',price:'50€'},{qty:'2x',price:'90€'},{qty:'4x',price:'170€'}],likes:3},
+      {id:2,name:'Beltz',category:'Classic',desc:'⚡ Beltz — Le classique revisité. Force et caractère.',emoji:'⚡',price:[{qty:'1x',price:'45€'},{qty:'2x',price:'80€'}],likes:2},
+      {id:3,name:'Blue Dream',category:'Premium',desc:'💙 Blue Dream — Douceur et profondeur.',emoji:'💙',price:[{qty:'1x',price:'55€'},{qty:'2x',price:'100€'}],likes:5},
+      {id:4,name:'OG Kush',category:'Classic',desc:'🔥 OG Kush — La référence absolue.',emoji:'🔥',price:[{qty:'1x',price:'60€'},{qty:'2x',price:'110€'}],likes:10},
+    ];
+  }
+
+  applySettings();
+  renderAll();
+  hideLoader();
+}
+
+function hideLoader() {
+  setTimeout(() => {
+    const l = document.getElementById('loader');
+    l.style.transition = 'opacity 0.5s';
+    l.style.opacity = '0';
+    setTimeout(() => l.style.display = 'none', 500);
+  }, 800);
+}
+
+function applySettings() {
+  const sn = settings.shopName || 'TPS67';
+  document.getElementById('shopNameEl').textContent    = sn;
+  document.getElementById('detailShopName').textContent = sn;
+  document.getElementById('shopSubEl').textContent     = settings.shopSub || 'Boutique officielle';
+  const tgText = settings.tgBtnText || 'Commander sur Telegram';
+  document.getElementById('tgOrderBtn').textContent = '✈️ ' + tgText;
+}
+
+function renderAll() {
+  document.getElementById('detailCount').textContent = products.length + ' produit' + (products.length > 1 ? 's' : '');
+  renderCats();
+  renderProducts();
+  updateCartBadge();
+}
+
+// ========================
+// CATEGORIES
+// ========================
+function renderCats() {
+  const scroll = document.getElementById('catsScroll');
+  const all = [{id:'all',name:'Tous'}, ...categories.map(c => ({id:c, name:c}))];
+  scroll.innerHTML = all.map(c =>
+    `<div class="cat-chip ${c.id === activeCategory ? 'active' : ''}" onclick="setCategory('${c.id}')">${c.name}</div>`
+  ).join('');
+}
+function setCategory(cat) { activeCategory = cat; renderCats(); filterProducts(); }
+function scrollToCats() { document.getElementById('catsScroll').scrollIntoView({behavior:'smooth'}); }
+
+// ========================
+// PRODUCTS
+// ========================
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = products.filter(p => {
+    const matchCat = activeCategory === 'all' || p.category === activeCategory;
+    const matchQ   = p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderProducts(filtered);
+}
+
+function renderProducts(list) {
+  const grid  = document.getElementById('productsGrid');
+  const items = list || products;
+  if (!items.length) {
+    grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:40px;color:var(--text2);">Aucun produit trouvé</div>';
+    return;
+  }
+  grid.innerHTML = items.map((p, i) => {
+    const lc    = likeCounts[p.id] !== undefined ? likeCounts[p.id] : (p.likes || 0);
+    const liked = likes[p.id];
+    const hasVideo = !!(p.videoKey || p.videoUrl);
+    return `
+    <div class="product-card" style="animation-delay:${i * 0.05}s" onclick="openProduct(${p.id})">
+      <div class="card-img-wrap">
+        ${p.photo
+          ? `<img src="${p.photo}" alt="${p.name}" loading="lazy">`
+          : `<div class="card-img-placeholder">${p.emoji || '📦'}</div>`}
+        <div class="card-badge">${p.category || ''}</div>
+        ${hasVideo ? '<div class="video-badge">🎥 Vidéo</div>' : ''}
+        <div class="card-like">
+          <div class="like-count">❤️ ${lc}</div>
+          <button class="like-btn" onclick="toggleLike(event,${p.id})">${liked ? '❤️' : '🤍'}</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${p.name}</div>
+        <div class="card-desc">${p.desc || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLike(e, id) {
+  e.stopPropagation();
+  const p       = products.find(x => x.id == id);
+  const current = likeCounts[id] !== undefined ? likeCounts[id] : (p?.likes || 0);
+  if (likes[id]) { delete likes[id]; likeCounts[id] = Math.max(0, current - 1); }
+  else           { likes[id] = true; likeCounts[id] = current + 1; }
+  localStorage.setItem('tps67_likes',      JSON.stringify(likes));
+  localStorage.setItem('tps67_likecounts', JSON.stringify(likeCounts));
+  filterProducts();
+}
+
+// ========================
+// PRODUCT DETAIL
+// ========================
+async function openProduct(id) {
+  selectedProduct = products.find(p => p.id == id);
+  if (!selectedProduct) return;
+  selectedQty = null;
+
+  const media = document.getElementById('detailMedia');
+  media.innerHTML = selectedProduct.photo
+    ? `<img src="${selectedProduct.photo}" alt="${selectedProduct.name}">`
+    : `<div class="detail-media-placeholder">${selectedProduct.emoji || '📦'}</div>`;
+
+  document.getElementById('detailTitle').textContent   = selectedProduct.name;
+  document.getElementById('detailCat').textContent     = selectedProduct.category || '';
+  document.getElementById('detailVariant').innerHTML   = `● ${selectedProduct.name} ${selectedProduct.emoji || ''}`;
+  document.getElementById('detailDesc').textContent    = selectedProduct.desc || '';
+
+  const prices = selectedProduct.price || [{qty:'1x', price:'—'}];
+  document.getElementById('qtyOptions').innerHTML = prices.map((opt, i) =>
+    `<div class="qty-option ${i === 0 ? 'selected' : ''}" onclick="selectQty(this,'${opt.qty}','${opt.price}')">${opt.qty} : ${opt.price}</div>`
+  ).join('');
+  selectedQty = prices[0];
+
+  openPage('detailPage');
+
+  // Charger vidéo (URL directe ou IndexedDB)
+  const videoRef = selectedProduct.videoKey || selectedProduct.videoUrl || null;
+  if (videoRef) {
+    if (videoRef.startsWith('http')) {
+      media.innerHTML = `<video src="${videoRef}" controls autoplay loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
+    } else {
+      try {
+        const db = await new Promise((res, rej) => {
+          const req = indexedDB.open('tps67_videos', 1);
+          req.onupgradeneeded = e => e.target.result.createObjectStore('videos');
+          req.onsuccess = e => res(e.target.result);
+          req.onerror = rej;
+        });
+        const file = await new Promise((res, rej) => {
+          const tx  = db.transaction('videos', 'readonly');
+          const req = tx.objectStore('videos').get(videoRef);
+          req.onsuccess = e => res(e.target.result);
+          req.onerror   = rej;
+        });
+        if (file) {
+          const vid = document.createElement('video');
+          vid.controls = true; vid.autoplay = true; vid.loop = true;
+          vid.setAttribute('playsinline', '');
+          vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          try { vid.srcObject = file; } catch { vid.src = URL.createObjectURL(file); }
+          media.innerHTML = '';
+          media.appendChild(vid);
+        }
+      } catch (e) { /* garder la photo */ }
+    }
+  }
+}
+
+function selectQty(el, qty, price) {
+  document.querySelectorAll('.qty-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedQty = {qty, price};
+}
+
+// ========================
+// CART
+// ========================
+function addToCart() {
+  if (!selectedProduct) return;
+  cart.push({product: selectedProduct, qty: selectedQty, date: new Date().toLocaleString('fr-FR')});
+  localStorage.setItem('tps67_cart', JSON.stringify(cart));
+  updateCartBadge();
+  showToast('✅ Ajouté au panier !');
+  closePage('detailPage');
+}
+
+function orderTelegram() {
+  if (!selectedProduct || !selectedQty) return;
+  const username = settings.tgUsername || 'TPS67bot';
+  const msg = `Bonjour ! Je souhaite commander :\n\n📦 ${selectedProduct.name}\n🔢 ${selectedQty.qty}\n💰 ${selectedQty.price}\n\nMerci !`;
+  window.open(`https://t.me/${username}?text=${encodeURIComponent(msg)}`, '_blank');
+  historyList.unshift({name: selectedProduct.name, qty: selectedQty, date: new Date().toLocaleString('fr-FR'), status: 'sent'});
+  localStorage.setItem('tps67_history', JSON.stringify(historyList));
+}
+
+function updateCartBadge() {
+  const b = document.getElementById('cartBadge');
+  if (cart.length > 0) { b.style.display = 'block'; b.textContent = cart.length; }
+  else                 { b.style.display = 'none'; }
+}
+
+function renderCart() {
+  const content = document.getElementById('cartContent');
+  if (!cart.length) {
+    content.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div><div>Ton panier est vide</div></div>`;
+    return;
+  }
+  const total = cart.reduce((s, item) => s + (parseInt((item.qty?.price || '0').replace(/\D/g, '')) || 0), 0);
+  content.innerHTML = cart.map((item, i) => `
+    <div class="cart-item">
+      <div class="cart-item-img">${item.product.photo ? `<img src="${item.product.photo}">` : (item.product.emoji || '📦')}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.product.name}</div>
+        <div class="cart-item-qty">${item.qty?.qty || ''}</div>
+      </div>
+      <div class="cart-item-price">${item.qty?.price || '—'}</div>
+      <button class="cart-remove" onclick="removeFromCart(${i})">✕</button>
+    </div>`).join('') + `
+    <div class="cart-total">
+      <div class="cart-total-label">Total estimé</div>
+      <div class="cart-total-price">${total}€</div>
+    </div>
+    <div style="padding:0 12px;">
+      <button class="btn btn-telegram" onclick="orderCartTelegram()">✈️ Commander tout sur Telegram</button>
+    </div>`;
+}
+
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  localStorage.setItem('tps67_cart', JSON.stringify(cart));
+  updateCartBadge();
+  renderCart();
+}
+
+function orderCartTelegram() {
+  const username = settings.tgUsername || 'TPS67bot';
+  const lines = cart.map(item => `📦 ${item.product.name} — ${item.qty?.qty} — ${item.qty?.price}`).join('\n');
+  const msg   = `Bonjour ! Voici ma commande :\n\n${lines}\n\nMerci !`;
+  window.open(`https://t.me/${username}?text=${encodeURIComponent(msg)}`, '_blank');
+  historyList.unshift(...cart.map(item => ({name: item.product.name, qty: item.qty, date: new Date().toLocaleString('fr-FR'), status: 'sent'})));
+  localStorage.setItem('tps67_history', JSON.stringify(historyList));
+  cart = [];
+  localStorage.setItem('tps67_cart', JSON.stringify(cart));
+  updateCartBadge();
+  renderCart();
+}
+
+// ========================
+// HISTORY
+// ========================
+function renderHistory() {
+  const content = document.getElementById('historyContent');
+  if (!historyList.length) {
+    content.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🕐</div><div>Aucune commande</div></div>`;
+    return;
+  }
+  content.innerHTML = historyList.map(item => `
+    <div class="history-item">
+      <div class="history-date">${item.date}</div>
+      <div class="history-name">${item.name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <div style="font-size:13px;color:var(--text2);">${item.qty?.qty || ''} — ${item.qty?.price || ''}</div>
+        <div class="history-status status-sent">✅ Envoyé</div>
+      </div>
+    </div>`).join('');
+}
+
+// ========================
+// INFO PAGE
+// ========================
+function renderInfo() {
+  const content  = document.getElementById('infoContent');
+  const shopName = settings.shopName || 'TPS67';
+  let html = `
+    <div class="info-banner">
+      <div class="info-shop-name">${shopName}</div>
+      ${info.slogan ? `<div class="info-slogan">${info.slogan}</div>` : ''}
+      ${info.desc   ? `<div class="info-desc">${info.desc}</div>`    : ''}
+      ${info.hours  ? `<div class="info-hours">🕐 ${info.hours}</div>` : ''}
+    </div>`;
+
+  if (info.socials && info.socials.length) {
+    html += `<div class="info-card"><div class="info-card-title">Nous rejoindre</div><div class="social-btns">`;
+    info.socials.forEach(s => {
+      const style = SOCIAL_COLORS[s.platform] || {bg:'var(--purple)', color:'white'};
+      const icon  = SOCIAL_ICONS[s.platform]  || '🔗';
+      const label = SOCIAL_LABELS[s.platform] || s.platform;
+      const link  = s.link.startsWith('http') ? s.link : `https://t.me/${s.link.replace('@','')}`;
+      html += `<button class="social-btn" style="background:${style.bg};color:${style.color};" onclick="window.open('${link}','_blank')">${icon} ${label}</button>`;
+    });
+    html += `</div></div>`;
+  }
+
+  if (!info.desc && !info.socials?.length) {
+    html += `<div style="text-align:center;padding:40px 20px;color:var(--text2);">
+      <div style="font-size:48px;margin-bottom:12px;">ℹ️</div>
+      <div>Page infos bientôt disponible</div>
+    </div>`;
+  }
+  content.innerHTML = html;
+}
+
+// ========================
+// NAVIGATION
+// ========================
+function openPage(id)  { document.getElementById(id).classList.add('active'); document.getElementById(id).scrollTop = 0; }
+function closePage(id) { document.getElementById(id).classList.remove('active'); }
+
+function showTab(tab, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  if (tab === 'cart')    { openPage('cartPage');    renderCart();    }
+  else if (tab === 'history') { openPage('historyPage'); renderHistory(); }
+  else if (tab === 'info')    { openPage('infoPage');    renderInfo();    }
+  else if (tab === 'cats') {
+    closePage('cartPage'); closePage('historyPage'); closePage('infoPage');
+    scrollToCats();
+  } else {
+    closePage('cartPage'); closePage('historyPage'); closePage('infoPage');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ========================
+// MUSIC
+// ========================
+let audioCtx = null, musicPlaying = false, musicNodes = [];
+
+function buildMusic() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  [55, 82.5, 110, 146.8, 220].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
+    const lfo = audioCtx.createOscillator(), lfoGain = audioCtx.createGain();
+    osc.type = i % 2 === 0 ? 'sine' : 'triangle'; osc.frequency.value = freq;
+    lfo.frequency.value = 0.08 + i * 0.03; lfoGain.gain.value = freq * 0.008;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency); lfo.start();
+    filter.type = 'lowpass'; filter.frequency.value = 600 + i * 200;
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.03 + (i === 0 ? 0.02 : 0), audioCtx.currentTime + 2);
+    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); osc.start();
+    musicNodes.push({osc, gain, lfo});
+  });
+}
+
+function stopMusic() {
+  musicNodes.forEach(({osc, gain, lfo}) => {
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+    setTimeout(() => { try { osc.stop(); lfo.stop(); } catch(e) {} }, 1600);
+  });
+  musicNodes = [];
+}
+
+function toggleMusic() {
+  const btn = document.getElementById('musicBtn');
+  if (!musicPlaying) {
+    buildMusic(); musicPlaying = true;
+    btn.classList.add('music-playing'); btn.textContent = '⏸';
+    showToast('🎵 Musique activée');
+  } else {
+    stopMusic(); musicPlaying = false;
+    btn.classList.remove('music-playing'); btn.textContent = '🎵';
+    showToast('⏸ Musique en pause');
+  }
+}
+
+// ========================
+// STARS
+// ========================
+(function() {
+  const canvas = document.getElementById('starCanvas');
+  const ctx    = canvas.getContext('2d');
+  let stars    = [];
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  function createStars(n) {
+    stars = [];
+    for (let i = 0; i < n; i++) {
+      const size = Math.random() * 2.2;
+      stars.push({x: Math.random() * canvas.width, y: Math.random() * canvas.height, size, speed: 0.08 + Math.random() * 0.18, opacity: 0.1 + Math.random() * 0.7, twinkleSpeed: 0.005 + Math.random() * 0.015, twinkleDir: Math.random() > 0.5 ? 1 : -1, drift: (Math.random() - 0.5) * 0.12});
+    }
+  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      s.opacity += s.twinkleSpeed * s.twinkleDir;
+      if (s.opacity > 0.9 || s.opacity < 0.08) s.twinkleDir *= -1;
+      s.y -= s.speed; s.x += s.drift;
+      if (s.y < -2) s.y = canvas.height + 2;
+      if (s.x < -2) s.x = canvas.width + 2;
+      if (s.x > canvas.width + 2) s.x = -2;
+      if (s.size > 1.4) {
+        const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 4);
+        g.addColorStop(0, `rgba(180,160,255,${s.opacity * 0.4})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 4, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(220,210,255,${s.opacity})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); createStars(160); draw();
+  window.addEventListener('resize', () => { resize(); createStars(160); });
+})();
+
+// ========================
+// INIT
+// ========================
+if (window.Telegram?.WebApp) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); }
+loadData();
+</script>
+</body>
+</html>
